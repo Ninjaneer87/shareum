@@ -22,33 +22,7 @@ const handler = async (req, res) => {
         return res.status(500).json(error);
       }
     }
-
-    if (req.body.email) { // check if available
-      try {
-        const emailFields = await User.find({}, { email: 1, _id: 0 });
-        const allEmails = emailFields.map(email => email.email);
-
-        const emailExists = allEmails.includes(req.body.email);
-        if (emailExists && req.body.email !== user.email)
-          return res.status(403).json('This email is not available!')
-      } catch (error) {
-        return res.status(500).json(error);
-      }
-    }
-
-    if (req.body.username) { // check if available
-      try {
-        const usernameFields = await User.find({}, { username: 1, _id: 0 });
-        const allUsernames = usernameFields.map(user => user.username);
-
-        const usernameExists = allUsernames.includes(req.body.username);
-        if (usernameExists && req.body.username !== user.username)
-          return res.status(403).json('This username is not available!')
-      } catch (error) {
-        return res.status(500).json(error);
-      }
-    }
-
+    
     try {
       await User.findByIdAndUpdate(id, { $set: req.body });
       res.status(200).json("User has been updated!");

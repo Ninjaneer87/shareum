@@ -1,6 +1,8 @@
 import connectDB from '../../../middleware/mongodb';
 import User from '../../../models/User';
 import bcrypt from 'bcrypt';
+import { sign } from 'jsonwebtoken';
+import cookie from 'cookie';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,27 +17,27 @@ async function handler(req, res) {
     const validPassword = await bcrypt.compare(password, user.password);
     !validPassword && res.status(400).json('Wrong password');
 
-    res.status(200).json(user);
+    const claims = {
+      id: user.id,
+      email,
+      username: user.username
+    }
+    const expirationTime = 60 * 60 * 24 * 7 // 7 days
+    const secret = process.env.SECRET_KEY;
+    const options = { expiresIn: expirationTime} 
+    const jwt = sign(claims, secret, options)
+
+    res.setHeader('Set-Cookie', cookie.serialize('auth', jwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== 'development', // https
+      sameSite: 'strict',
+      maxAge: expirationTime,
+      path: '/' // root of our domain
+    }))
+    res.status(200).json({message: `Hi ${user.username}, welcome back!`, data: claims});
   } catch (error) {
     res.status(500).json(error);
   }
-
-  // try {
-  //   const salt = await bcrypt.genSalt(10);
-  //   const hashedPassword = await bcrypt.hash(password, salt);
-
-  //   const newUser = new User({
-  //     username,
-  //     email,
-  //     password: hashedPassword
-  //   });
-
-  //   const user = await newUser.save();
-  //   res.status(200).json(user);
-  // } catch (error) {
-  //   res.status(500).json(error);
-  // }
-
 }
 
 export default connectDB(handler);
